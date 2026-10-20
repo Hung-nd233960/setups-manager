@@ -1,6 +1,6 @@
 # Setups Manager
 
-Checks this machine against the [Setups](https://github.com/Hung-nd233960/Setups) conventions and says how to fix what is off. A command line now; a Textual TUI is next.
+Checks this machine against the [Setups](https://github.com/Hung-nd233960/Setups) conventions and says how to fix what is off. A command line plus a Textual TUI.
 
 ## Usage
 
@@ -10,7 +10,10 @@ setups check --quick            # skip the slow ones (cache sizes, online update
 setups check --group repos      # or --only vscode; repeatable
 setups check --json             # for tools and agents
 setups list                     # the checks, by group
+setups tui                      # terminal UI: Dashboard and New project tabs
 ```
+
+`setups tui` is for people at a keyboard (agents use the commands above and must never start it). Keys: `r` re-run checks (follows the Quick switch), `R` run all including slow ones, `n` New project, `q` quit. The New project tab is a form over `new-project`: it reads the rules from `new-project --options-json`, shows the exact command it will run, and streams its output.
 
 Install the command (once): `uv tool install --editable .`. On Windows, `Setups\windows\maintain.ps1` runs `setups check` and adds `-Clean` / `-Update`.
 
@@ -27,19 +30,20 @@ Each result has a status (`ok`, `warn`, `error`, `skip`), a title, a detail and 
 ## How it fits together
 
 ```text
-cli.py / (TUI next)      presentation only
+cli.py · tui/            presentation only (tui/: app, dashboard, new_project, widgets)
 runner.py                select checks, run them in parallel, stream or collect results
 registry.py              @check(id, group, description, slow=, platforms=)
 checks/*.py              one module per area; each check yields Result(title, status, detail, fix)
 model.py · context.py    Result / Fix / Status; where things live (SETUPS_DIR, NEW_PROJECT_DIR)
-shell.py                 run tools without raising: missing tool or timeout is an outcome
+shell.py                 run tools without raising; stream() yields live output lines
+newproject.py            new-project options, validation and command builder
 ```
 
 Rules that already live in Setups stay there: the VS Code check calls `common/vscode/setup.py --check --json` instead of re-implementing it.
 
 ## Roadmap
 
-1. **TUI (Textual):** dashboard of results that fill in as checks finish, re-run, and a New project form over `new-project`.
+1. **TUI (Textual), done:** dashboard of results that fill in as checks finish, re-run, and a New project form over `new-project`.
 2. **Fixes:** run a result's fix from the TUI (with a confirmation for `confirm` fixes); Projects view with each project's VS Code profile and git state.
 3. **VS Code and maintenance:** settings diff viewer, extension drift, clean/update with live logs.
 4. **SSH:** run `setups check --json` on a trusted host and show it next to the local results.
@@ -49,4 +53,9 @@ Rules that already live in Setups stay there: the VS Code check calls `common/vs
 ```powershell
 uv run pytest
 uv run setups check --quick
+```
+
+TUI tests use Textual's `App.run_test()` (headless). Never launch `setups tui` from a script or agent.
+
+```powershell
 ```

@@ -9,7 +9,8 @@ Python package with a command-line entry point, managed with uv (Python 3.13). I
 - **Checks are read-only.** They inspect and report; any change belongs in a `Fix` command. Mark a fix `confirm=True` when it is destructive or outward-facing (push, prune, uninstall, upgrade).
 - New check: a function in the right `checks/` module, decorated with `@check(id, group, description)`; `slow=True` if it walks big folders or goes online; `platforms=` if OS-specific. Yield one `Result` per thing checked. Add a test with a temporary `Context` (`tests/conftest.py`), never against the real machine.
 - Run tools through `shell.run`, which never raises. Do not duplicate rules that Setups scripts own (VS Code goes through `setup.py --json`).
-- UI code (CLI now, Textual next) holds no logic: everything it can do must also work from `setups check --json`.
+- UI code (`cli.py`, `tui/`) holds no logic: the logic lives in core modules (`runner`, `shell`, `newproject`, ...) with unit tests. TUI layout: `tui/app.py` (SetupsApp, tabs, bindings), `dashboard.py`, `new_project.py`, `widgets.py` (ConfirmScreen, LogPanel), `app.tcss`. Long work runs in thread workers and reports back with `call_from_thread`; `setups check` must not import Textual (`tui` is imported lazily).
+- **Never run the TUI** (`setups tui`) from an agent: it blocks the shell. Test it only with Textual's `App.run_test()` and patch `shell.run`/`shell.stream`/`newproject.load_options`. Give widgets stable ids.
 - Formatting, lint, spelling and type checks run automatically after each edit (ruff, typos, ty). Fix what they report. Full pass: `ruff check . ; ty check`.
 - Keep README usage in sync with the CLI. Commit in small steps.
 - VS Code profile: Python, in `.vscode/profile`. If the work changes (e.g. notebooks arrive), switch with `vsc --set <profile>` (`vsc --list` shows them); never open VS Code windows unless asked.
