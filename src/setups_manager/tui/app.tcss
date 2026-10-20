@@ -110,6 +110,37 @@ TabPane {
     display: block;
 }
 
+#projects-table {
+    height: 1fr;
+}
+
+#projects-status {
+    height: 2;
+}
+
+#projects-log {
+    height: 5;
+    border: round $primary;
+}
+
+ProfileScreen {
+    align: center middle;
+}
+
+#profile-box {
+    width: 60;
+    height: auto;
+    border: thick $primary;
+    background: $surface;
+    padding: 1 2;
+}
+
+#profile-buttons {
+    height: 3;
+    align-horizontal: right;
+    margin-top: 1;
+}
+
 ConfirmScreen {
     align: center middle;
 }

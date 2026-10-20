@@ -3,12 +3,13 @@
 from pathlib import Path
 
 from conftest import make_ctx
-from setups_manager import newproject, shell
+from setups_manager import newproject, projects, shell
 from setups_manager.model import Fix, Result, Status
 from setups_manager.newproject import Options
 from setups_manager.registry import Check
 from setups_manager.tui.app import SetupsApp
 from setups_manager.tui.dashboard import DashboardPane
+from setups_manager.tui.projects import ProfileScreen, ProjectsPane
 from setups_manager.tui.new_project import NewProjectPane
 from setups_manager.tui.widgets import ConfirmScreen, LogPanel
 from textual.widgets import Button, DataTable, Input, Select, Static, Switch
@@ -344,3 +345,110 @@ async def test_manual_fix_has_no_run_button_and_second_fix_is_blocked(
         assert seen == []
         pane._update_fix_button(pane.selected_target())
         assert app.query_one("#fix-btn", Button).disabled
+
+
+def make_project(ctx, name, profile=None):
+    folder = ctx.projects / name
+    folder.mkdir(parents=True)
+    if profile:
+        (folder / ".vscode").mkdir()
+        (folder / ".vscode" / "profile").write_text(profile + "\n")
+    return folder
+
+
+def project_rows(app) -> list[tuple[str, ...]]:
+    table = app.query_one("#projects-table", DataTable)
+    return [tuple(str(c) for c in table.get_row_at(i)) for i in range(table.row_count)]
+
+
+async def test_projects_tab_lists_folders(tmp_path):
+    ctx = make_ctx(tmp_path)
+    make_project(ctx, "alpha", "Python")
+    make_project(ctx, "beta")
+    app = SetupsApp(ctx, [])
+    async with app.run_test(size=(120, 40)) as pilot:
+        await settle(app, pilot)
+        # no git repos here: no branch, no counts
+        assert project_rows(app) == [
+            ("alpha", "Python", "—", "—", "—", "—"),
+            ("beta", "—", "—", "—", "—", "—"),
+        ]
+        assert "2 projects" in text(app, "#projects-status")
+
+
+async def test_projects_open_and_refresh(tmp_path, monkeypatch):
+    ctx = make_ctx(tmp_path)
+    folder = make_project(ctx, "alpha")
+    opened = []
+
+    def fake_open(path):
+        opened.append(path)
+        return shell.Output(0, "", "")
+
+    monkeypatch.setattr(projects, "open_project", fake_open)
+    app = SetupsApp(ctx, [])
+    async with app.run_test(size=(120, 40)) as pilot:
+        await settle(app, pilot)
+        app.query_one("#projects-table", DataTable).focus()
+        await pilot.press("o")
+        await settle(app, pilot)
+        assert opened == [folder]
+        assert "Opened alpha" in text(app, "#projects-status")
+        make_project(ctx, "gamma")
+        await pilot.press("g")
+        await settle(app, pilot)
+        assert [r[0] for r in project_rows(app)] == ["alpha", "gamma"]
+
+
+async def test_projects_set_profile_flow(tmp_path, monkeypatch):
+    ctx = make_ctx(tmp_path)
+    folder = make_project(ctx, "alpha", "Python")
+    seen = []
+
+    def fake_set(path, profile):
+        seen.append((path, profile))
+        (path / ".vscode" / "profile").write_text(profile + "\n")
+        yield "marker written"
+        yield shell.Exit(0)
+
+    monkeypatch.setattr(newproject, "load_options", lambda: OPTS)
+    monkeypatch.setattr(projects, "set_profile", fake_set)
+    app = SetupsApp(ctx, [])
+    async with app.run_test(size=(120, 40)) as pilot:
+        await settle(app, pilot)
+        app.query_one("#projects-table", DataTable).focus()
+
+        await pilot.press("p")  # cancel first: nothing changes
+        await settle(app, pilot)
+        assert isinstance(app.screen, ProfileScreen)
+        assert app.screen.query_one("#profile-select", Select).value == "Python"
+        await pilot.click("#profile-cancel")
+        await settle(app, pilot)
+        assert seen == []
+        assert not app.query_one(ProjectsPane).busy
+
+        await pilot.press("p")
+        await settle(app, pilot)
+        app.screen.query_one("#profile-select", Select).value = "Docs"
+        await pilot.click("#profile-ok")
+        await settle(app, pilot)
+        assert seen == [(folder, "Docs")]
+        assert "marker written" in app.query_one("#projects-log", LogPanel).history
+        status = text(app, "#projects-status")
+        assert "profile set to Docs" in status
+        assert "setup.py" in status  # the reminder survives the table reload
+        assert project_rows(app)[0][1] == "Docs"
+
+
+async def test_projects_set_profile_without_new_project(tmp_path, monkeypatch):
+    ctx = make_ctx(tmp_path)
+    make_project(ctx, "alpha")
+    monkeypatch.setattr(newproject, "load_options", lambda: None)
+    app = SetupsApp(ctx, [])
+    async with app.run_test(size=(120, 40)) as pilot:
+        await settle(app, pilot)
+        app.query_one("#projects-table", DataTable).focus()
+        await pilot.press("p")
+        await settle(app, pilot)
+        assert "not installed" in text(app, "#projects-status")
+        assert not isinstance(app.screen, ProfileScreen)

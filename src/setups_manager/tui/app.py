@@ -12,6 +12,7 @@ from setups_manager.context import Context
 from setups_manager.registry import Check
 from setups_manager.tui.dashboard import DashboardPane
 from setups_manager.tui.new_project import NewProjectPane
+from setups_manager.tui.projects import ProjectsPane
 
 THEME = "catppuccin-mocha"
 
@@ -42,6 +43,8 @@ class SetupsApp(App):
                 yield DashboardPane(self.ctx, self.checks)
             with TabPane("New project", id="tab-new-project"):
                 yield NewProjectPane()
+            with TabPane("Projects", id="tab-projects"):
+                yield ProjectsPane(self.ctx)
         yield Footer()
 
     def action_rerun(self, everything: bool) -> None:

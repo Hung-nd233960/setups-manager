@@ -13,10 +13,10 @@ setups list                     # the checks, by group
 setups fix --list               # results with a fix command, each with a key like repos:2
 setups fix repos:2 [--yes]      # run that fix, then re-check (fixes that ask first need --yes)
 setups projects [--json]        # project folders with VS Code profile and git state
-setups tui                      # terminal UI: Dashboard and New project tabs
+setups tui                      # terminal UI: Dashboard, New project and Projects tabs
 ```
 
-`setups tui` is for people at a keyboard (agents use the commands above and must never start it). Keys: `r` re-run checks (follows the Quick switch), `R` run all including slow ones, `f` run the selected row's fix (also the Run fix button; fixes that ask first show the exact command in a dialog), `n` New project, `q` quit. Fix output streams into a log under the detail panel and the owning check is re-run afterwards. Manual fixes only show their label. The New project tab is a form over `new-project`: it reads the rules from `new-project --options-json`, shows the exact command it will run, and streams its output.
+`setups tui` is for people at a keyboard (agents use the commands above and must never start it). Keys: `r` re-run checks (follows the Quick switch), `R` run all including slow ones, `f` run the selected row's fix (also the Run fix button; fixes that ask first show the exact command in a dialog), `n` New project, `q` quit. Fix output streams into a log under the detail panel and the owning check is re-run afterwards. Manual fixes only show their label. The Projects tab lists each project folder (profile, branch, uncommitted, unpushed, last commit); with the table focused, `o` opens the project in VS Code, `p` sets its profile (names from `new-project`), `g` refreshes. The New project tab is a form over `new-project`: it reads the rules from `new-project --options-json`, shows the exact command it will run, and streams its output.
 
 Install the command (once): `uv tool install --editable .`. On Windows, `Setups\windows\maintain.ps1` runs `setups check` and adds `-Clean` / `-Update`.
 
@@ -33,7 +33,7 @@ Each result has a status (`ok`, `warn`, `error`, `skip`), a title, a detail and 
 ## How it fits together
 
 ```text
-cli.py · tui/            presentation only (tui/: app, dashboard, new_project, widgets)
+cli.py · tui/            presentation only (tui/: app, dashboard, new_project, projects, widgets)
 runner.py                select checks, run them in parallel, stream or collect results
 registry.py              @check(id, group, description, slow=, platforms=)
 checks/*.py              one module per area; each check yields Result(title, status, detail, fix)
@@ -49,7 +49,7 @@ Rules that already live in Setups stay there: the VS Code check calls `common/vs
 ## Roadmap
 
 1. **TUI (Textual), done:** dashboard of results that fill in as checks finish, re-run, and a New project form over `new-project`.
-2. **Fixes:** run a result's fix from the TUI (with a confirmation for `confirm` fixes); Projects view with each project's VS Code profile and git state.
+2. **Fixes and Projects, done:** `setups fix` and the dashboard's `f` run a result's fix (a dialog first for `confirm` fixes); the Projects tab and `setups projects` show each project's VS Code profile and git state.
 3. **VS Code and maintenance:** settings diff viewer, extension drift, clean/update with live logs.
 4. **SSH:** run `setups check --json` on a trusted host and show it next to the local results.
 
