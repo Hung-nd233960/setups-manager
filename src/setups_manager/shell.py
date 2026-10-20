@@ -8,7 +8,6 @@ from pathlib import Path
 
 NOT_FOUND = 127
 TIMED_OUT = 124
-EXIT_PREFIX = "exit "
 
 
 @dataclass(frozen=True)
@@ -49,16 +48,22 @@ def run(cmd: list[str], *, cwd: Path | None = None, timeout: float = 120) -> Out
     return Output(done.returncode, done.stdout, done.stderr)
 
 
-def stream(cmd: list[str], *, cwd: Path | None = None) -> Iterator[str]:
-    """Yield output lines (stdout and stderr merged) as they arrive.
+@dataclass(frozen=True)
+class Exit:
+    """The last item `stream` yields: the exit code (127 when the tool is missing)."""
 
-    The last item is always the sentinel line ``exit <code>`` (127 when the tool is
-    missing). Use `exit_code` to read it.
+    code: int
+
+
+def stream(cmd: list[str], *, cwd: Path | None = None) -> Iterator[str | Exit]:
+    """Yield output lines (stdout and stderr merged) as they arrive, then one `Exit`.
+
+    The end is a typed item, not a text line, so no output can be mistaken for it.
     """
     exe = shutil.which(cmd[0])
     if exe is None:
         yield f"{cmd[0]}: not found"
-        yield f"{EXIT_PREFIX}{NOT_FOUND}"
+        yield Exit(NOT_FOUND)
         return
     try:
         proc = subprocess.Popen(
@@ -73,17 +78,10 @@ def stream(cmd: list[str], *, cwd: Path | None = None) -> Iterator[str]:
         )
     except OSError as e:
         yield f"{cmd[0]}: {e}"
-        yield f"{EXIT_PREFIX}{NOT_FOUND}"
+        yield Exit(NOT_FOUND)
         return
     assert proc.stdout is not None
     with proc:
         for line in proc.stdout:
             yield line.rstrip("\r\n")
-    yield f"{EXIT_PREFIX}{proc.returncode}"
-
-
-def exit_code(line: str) -> int | None:
-    """The exit code if `line` is the sentinel that ends `stream`, else None."""
-    if line.startswith(EXIT_PREFIX) and line[len(EXIT_PREFIX) :].lstrip("-").isdigit():
-        return int(line[len(EXIT_PREFIX) :])
-    return None
+    yield Exit(proc.returncode)

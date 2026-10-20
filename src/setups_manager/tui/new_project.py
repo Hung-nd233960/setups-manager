@@ -125,7 +125,7 @@ class NewProjectPane(VerticalScroll):
         engine = str(self.query_one("#np-engine", Select).value)
         profile = str(self.query_one("#np-profile", Select).value)
         directory = self.query_one("#np-dir", Input).value.strip()
-        uv_type = type_ in newproject.UV_TYPES
+        uv_type = type_ in self.opts.uv_types
         return Request(
             type=type_,
             name=self.query_one("#np-name", Input).value.strip(),
@@ -162,7 +162,9 @@ class NewProjectPane(VerticalScroll):
     def _type_changed(self, event: Select.Changed) -> None:
         type_ = str(event.value)
         self.query_one("#np-engine", Select).disabled = type_ != "report"
-        self.query_one("#np-sync", Switch).disabled = type_ not in newproject.UV_TYPES
+        self.query_one("#np-sync", Switch).disabled = (
+            self.opts is None or type_ not in self.opts.uv_types
+        )
         default = self._default_profile(type_)
         if default and not self._profile_touched:
             self.query_one("#np-profile", Select).value = default
@@ -202,12 +204,11 @@ class NewProjectPane(VerticalScroll):
     def _run_create(self, cmd: list[str], path: Path) -> None:
         log = self.query_one("#np-log", LogPanel)
         code = 1
-        for line in shell.stream(cmd):
-            exit_code = shell.exit_code(line)
-            if exit_code is None:
-                self.app.call_from_thread(log.add_line, line)
+        for item in shell.stream(cmd):
+            if isinstance(item, shell.Exit):
+                code = item.code
             else:
-                code = exit_code
+                self.app.call_from_thread(log.add_line, item)
         self.app.call_from_thread(self._create_finished, code, path)
 
     def _create_finished(self, code: int, path: Path) -> None:

@@ -14,6 +14,7 @@ def make_opts(default_dir: Path) -> Options:
         type_profiles={"py": "Python", "report": "Docs"},
         default_dir=default_dir,
         name_pattern=r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+        uv_types=frozenset({"py"}),
     )
 
 
@@ -26,12 +27,17 @@ def test_validate_reports_each_problem(tmp_path):
     assert any("unknown type" in p for p in validate(Request("zz", "ok"), opts))
     assert any("name must" in p for p in validate(Request("py", "Bad_Name"), opts))
     assert any("name must" in p for p in validate(Request("py", ""), opts))
-    assert any("engine" in p for p in validate(Request("py", "a", engine="typst"), opts))
+    assert any(
+        "engine" in p for p in validate(Request("py", "a", engine="typst"), opts)
+    )
     assert validate(Request("report", "a", engine="typst"), opts) == []
     assert any(
-        "unknown engine" in p for p in validate(Request("report", "a", engine="x"), opts)
+        "unknown engine" in p
+        for p in validate(Request("report", "a", engine="x"), opts)
     )
-    assert any("profile" in p for p in validate(Request("py", "a", profile="Nope"), opts))
+    assert any(
+        "profile" in p for p in validate(Request("py", "a", profile="Nope"), opts)
+    )
 
 
 def test_existing_target_must_be_empty(tmp_path):
@@ -77,6 +83,7 @@ SAMPLE = {
     "type_profiles": {"py": "Python"},
     "default_dir": "projects",
     "name_pattern": "^[a-z]+$",
+    "uv_types": ["py"],
 }
 
 

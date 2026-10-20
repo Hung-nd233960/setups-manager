@@ -11,8 +11,6 @@ from pathlib import Path
 
 from setups_manager import shell
 
-UV_TYPES = frozenset({"py", "data"})  # the types where new-project runs `uv sync`
-
 
 @dataclass(frozen=True)
 class Options:
@@ -23,6 +21,7 @@ class Options:
     type_profiles: dict[str, str]
     default_dir: Path
     name_pattern: str
+    uv_types: frozenset[str]  # the types where new-project runs `uv sync`
 
 
 @dataclass(frozen=True)
@@ -49,6 +48,7 @@ def parse_options(text: str) -> Options | None:
             type_profiles=dict(data["type_profiles"]),
             default_dir=Path(data["default_dir"]),
             name_pattern=data["name_pattern"],
+            uv_types=frozenset(data["uv_types"]),
         )
     except (ValueError, KeyError, TypeError):
         return None

@@ -119,6 +119,7 @@ OPTS = Options(
     type_profiles={"py": "Python", "report": "Docs"},
     default_dir=Path("projects"),
     name_pattern=r"^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+    uv_types=frozenset({"py"}),
 )
 
 
@@ -164,8 +165,8 @@ async def test_new_project_create_streams_output(tmp_path, monkeypatch):
     def fake_stream(cmd, *, cwd=None):
         seen.append(cmd)
         yield "scaffolding"
-        yield "all done"
-        yield "exit 0"
+        yield "exit 0"  # ordinary output, not the end
+        yield shell.Exit(0)
 
     app = SetupsApp(make_ctx(tmp_path), [])
     monkeypatch.setattr(newproject, "load_options", lambda: OPTS)
@@ -180,13 +181,15 @@ async def test_new_project_create_streams_output(tmp_path, monkeypatch):
         assert seen == [["new-project", "py", "fresh", "--dir", str(tmp_path / "out")]]
         log = " | ".join(app.query_one(LogPanel).history)
         assert "scaffolding" in log
-        assert "all done" in log
+        assert "exit 0" in log
         assert text(app, "#np-result").startswith("Created ")
         assert app.query_one("#np-open-btn").has_class("shown")
 
 
 async def test_new_project_failure_keeps_form(tmp_path, monkeypatch):
-    monkeypatch.setattr(shell, "stream", lambda cmd, **kw: iter(["oops", "exit 2"]))
+    monkeypatch.setattr(
+        shell, "stream", lambda cmd, **kw: iter(["oops", shell.Exit(2)])
+    )
     app = SetupsApp(make_ctx(tmp_path), [])
     monkeypatch.setattr(newproject, "load_options", lambda: OPTS)
     async with app.run_test(size=(120, 50)) as pilot:
