@@ -56,6 +56,3 @@ uv run setups check --quick
 ```
 
 TUI tests use Textual's `App.run_test()` (headless). Never launch `setups tui` from a script or agent.
-
-```powershell
-```
