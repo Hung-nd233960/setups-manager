@@ -5,13 +5,23 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 
 from setups_manager import shell
-from setups_manager.model import Result, row_key
+from setups_manager.model import Fix, Result, row_key
 
 
 @dataclass(frozen=True)
 class FixTarget:
     key: str  # same as the dashboard row key
     result: Result  # needs attention, and result.fix.command is set
+
+    @property
+    def fix(self) -> Fix:
+        assert self.result.fix is not None
+        return self.result.fix
+
+    @property
+    def command(self) -> list[str]:
+        assert self.fix.command is not None
+        return self.fix.command
 
 
 def fixable(results: list[Result]) -> list[FixTarget]:
@@ -28,7 +38,6 @@ def fixable(results: list[Result]) -> list[FixTarget]:
 
 def run_fix(target: FixTarget) -> Iterator[str | shell.Exit]:
     """Run the fix's command: output lines, then one `shell.Exit`."""
-    command = target.result.fix.command if target.result.fix else None
-    if not command:
+    if not (target.result.fix and target.result.fix.command):
         raise ValueError(f"{target.key} has no command to run")
-    return shell.stream(command)
+    return shell.stream(target.command)

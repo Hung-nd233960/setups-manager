@@ -1,4 +1,7 @@
 import json
+import sys
+
+import pytest
 
 from setups_manager.cli import main
 from setups_manager.model import Fix, Result, Status
@@ -56,8 +59,73 @@ def test_check_commands_do_not_import_textual():
     import sys
 
     code = (
-        "import sys; from setups_manager.cli import main; main(['list']); "
+        "import sys; from setups_manager.cli import main; "
+        "from setups_manager.registry import REGISTRY; main(['list']); "
+        "REGISTRY.clear(); main(['fix', '--list']); "  # empty: no real checks run
         "print(any(m.startswith('textual') for m in sys.modules))"
     )
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert out.stdout.strip().endswith("False")
+
+
+def register_fixable():
+    py = sys.executable
+
+    @check("stale", "setup", "always warns")
+    def stale(ctx):
+        yield Result("fine here", Status.OK)
+        yield Result("plain", Status.WARN, fix=Fix("Say", [py, "-c", "print('fixed')"]))
+        yield Result(
+            "risky",
+            Status.WARN,
+            fix=Fix("Say twice", [py, "-c", "print('twice')"], confirm=True),
+        )
+        yield Result("manual", Status.WARN, fix=Fix("By hand"))
+
+
+def test_fix_list_shows_keys_and_skips_manual_fixes(registry, capsys):
+    register_fixable()
+    assert main(["fix", "--list"]) == 0
+    out = capsys.readouterr().out
+    assert "stale:1  plain" in out
+    assert "stale:2  risky" in out
+    assert "(asks first)" in out
+    assert "manual" not in out
+
+
+def test_fix_runs_plain_fix_and_rechecks(registry, capsys):
+    register_fixable()
+    assert main(["fix", "stale:1"]) == 0
+    out = capsys.readouterr().out
+    assert "fixed" in out
+    assert "exit 0" in out
+    assert "== setup" in out  # the re-check output
+
+
+def test_fix_confirm_needs_yes_and_runs_nothing_without_it(registry, capsys):
+    register_fixable()
+    assert main(["fix", "stale:1", "stale:2"]) == 2
+    out = capsys.readouterr().out
+    assert "nothing was run" in out
+    assert "fixed" not in out
+    assert main(["fix", "stale:2", "--yes"]) == 0
+    assert "twice" in capsys.readouterr().out
+
+
+def test_fix_unknown_or_manual_key_exits_2(registry, capsys):
+    register_fixable()
+    assert main(["fix", "stale:3"]) == 2  # manual fix: shown, never run
+    assert main(["fix", "stale:9"]) == 2
+    assert "No automatic fix" in capsys.readouterr().err
+    with pytest.raises(SystemExit) as e:
+        main(["fix", "nosuch:0"])
+    assert e.value.code == 2
+
+
+def test_fix_failing_command_exits_1(registry, capsys):
+    @check("bad", "setup", "fails")
+    def bad(ctx):
+        yield Result("t", Status.WARN, fix=Fix("Fail", [sys.executable, "-c", "exit(3)"]))
+
+    assert main(["fix", "bad:0"]) == 1
+    assert "exit 3" in capsys.readouterr().out

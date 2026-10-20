@@ -4,6 +4,8 @@ setups check                 run every check (exit 1 if anything needs attention
 setups check --quick         skip the slow ones (cache sizes, online updates)
 setups check --group repos   only some groups (or --only <id>); --json for tools and agents
 setups list                  list the checks
+setups fix --list            the results that have a fix command (with their keys)
+setups fix <key>... [--yes]  run those fixes (confirm-fixes need --yes), then re-check
 setups tui                   the terminal UI (for people; agents use the commands above)
 """
 
@@ -12,7 +14,7 @@ import json
 import sys
 from collections import Counter
 
-from setups_manager import __version__
+from setups_manager import __version__, actions, shell
 from setups_manager.context import Context
 from setups_manager.model import Result, Status
 from setups_manager.registry import GROUPS, REGISTRY
@@ -53,6 +55,56 @@ def print_text(results: list[Result]) -> None:
     print("\n== summary: " + ", ".join(f"{n} {s}" for s, n in counts.items() if n))
 
 
+def print_fixable(targets: list[actions.FixTarget]) -> None:
+    if not targets:
+        print("Nothing to fix automatically.")
+    for t in targets:
+        ask = " (asks first)" if t.fix.confirm else ""
+        print(f"{t.key}  {t.result.title}")
+        print(f"    fix: {t.fix.label}{ask}")
+        print(f"    $ {' '.join(t.command)}")
+
+
+def run_fixes(args: argparse.Namespace, ctx: Context, parser) -> int:
+    """`setups fix`: list the fixes, or run the named ones. Never prompts."""
+    if args.list:
+        checks = select(ctx, quick=args.quick)
+        print_fixable(actions.fixable(run_all(checks, ctx)))
+        return 0
+    keys = list(dict.fromkeys(args.keys))
+    if not keys:
+        parser.error("give one or more fix keys, or --list")
+    if bad := [k for k in keys if ":" not in k]:
+        parser.error(f"not a fix key (expected <check>:<index>): {', '.join(bad)}")
+    try:
+        checks = select(ctx, ids={k.rsplit(":", 1)[0] for k in keys})
+    except ValueError as e:
+        parser.error(str(e))
+    by_key = {t.key: t for t in actions.fixable(run_all(checks, ctx))}
+    if missing := [k for k in keys if k not in by_key]:
+        print(f"No automatic fix for: {', '.join(missing)}", file=sys.stderr)
+        return 2
+    if not args.yes and (asks := [k for k in keys if by_key[k].fix.confirm]):
+        # nothing runs, not even the fixes that would not ask
+        print("These fixes ask first; nothing was run. Add --yes to run them:")
+        print_fixable([by_key[k] for k in asks])
+        return 2
+    failed = False
+    for key in keys:
+        target = by_key[key]
+        print(f"== {key}: {target.fix.label}")
+        print(f"$ {' '.join(target.command)}", flush=True)
+        for item in actions.run_fix(target):
+            if isinstance(item, shell.Exit):
+                print(f"exit {item.code}")
+                failed = failed or item.code != 0
+            else:
+                print(item, flush=True)
+    print("\nRe-checking:", file=sys.stderr)
+    print_text(run_all(checks, ctx))
+    return 1 if failed else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="setups",
@@ -74,6 +126,18 @@ def main(argv: list[str] | None = None) -> int:
         "--only", action="append", metavar="ID", help="only this check (repeatable)"
     )
     commands.add_parser("list", help="list the checks")
+    fix = commands.add_parser(
+        "fix",
+        help="list or run the fixes of failing checks",
+        description="Run the fix commands that checks suggest. Keys come from "
+        "`setups fix --list` (<check>:<index>). Fixes marked 'asks first' need --yes.",
+    )
+    fix.add_argument("keys", nargs="*", metavar="KEY", help="e.g. repos:2")
+    fix.add_argument("--list", action="store_true", help="list fixable results")
+    fix.add_argument(
+        "--quick", action="store_true", help="with --list: skip slow checks"
+    )
+    fix.add_argument("--yes", action="store_true", help="also run fixes that ask first")
     commands.add_parser(
         "tui", help="open the terminal UI (interactive; not for agents)"
     )
@@ -86,6 +150,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     ctx = Context.detect()
+    if args.command == "fix":
+        return run_fixes(args, ctx, parser)
     if args.command == "list":
         for c in select(ctx):
             slow = " (slow)" if c.slow else ""

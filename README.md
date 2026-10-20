@@ -10,6 +10,8 @@ setups check --quick            # skip the slow ones (cache sizes, online update
 setups check --group repos      # or --only vscode; repeatable
 setups check --json             # for tools and agents
 setups list                     # the checks, by group
+setups fix --list               # results with a fix command, each with a key like repos:2
+setups fix repos:2 [--yes]      # run that fix, then re-check (fixes that ask first need --yes)
 setups tui                      # terminal UI: Dashboard and New project tabs
 ```
 
@@ -17,7 +19,7 @@ setups tui                      # terminal UI: Dashboard and New project tabs
 
 Install the command (once): `uv tool install --editable .`. On Windows, `Setups\windows\maintain.ps1` runs `setups check` and adds `-Clean` / `-Update`.
 
-Each result has a status (`ok`, `warn`, `error`, `skip`), a title, a detail and usually a **fix**: a label and, when it can be automated, a command. Fixes marked `confirm` are destructive or outward-facing (push, prune, upgrade) and must be agreed to first. `setups check` never changes anything itself.
+Each result has a status (`ok`, `warn`, `error`, `skip`), a title, a detail and usually a **fix**: a label and, when it can be automated, a command. Fixes marked `confirm` are destructive or outward-facing (push, prune, upgrade) and must be agreed to first. `setups check` never changes anything itself; `setups fix <key>` runs one fix on request. It never prompts: a fix that asks first runs only with `--yes`, otherwise nothing runs and the exit code is 2.
 
 | Group | Checks |
 |---|---|
@@ -34,7 +36,8 @@ cli.py · tui/            presentation only (tui/: app, dashboard, new_project, 
 runner.py                select checks, run them in parallel, stream or collect results
 registry.py              @check(id, group, description, slow=, platforms=)
 checks/*.py              one module per area; each check yields Result(title, status, detail, fix)
-model.py · context.py    Result / Fix / Status; where things live (SETUPS_DIR, NEW_PROJECT_DIR)
+actions.py               fixable results and running a fix (shared by `setups fix` and the TUI)
+model.py · context.py    Result / Fix / Status / row_key; where things live (SETUPS_DIR, NEW_PROJECT_DIR)
 shell.py                 run tools without raising; stream() yields live output lines
 newproject.py            new-project options, validation and command builder
 ```
