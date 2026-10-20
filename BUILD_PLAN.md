@@ -29,7 +29,7 @@ This plan is written for an AI agent (Claude Sonnet) who builds the rest of setu
 
 ## 1. What exists today (phase 0)
 
-### This repo: `D:\Personal Projects\setups-manager`
+### This repo: `D:\projects\setups-manager`
 
 Installed globally with `uv tool install --editable .` as the command `setups`. Public: `github.com/Hung-nd233960/setups-manager`.
 
@@ -52,7 +52,7 @@ Installed globally with `uv tool install --editable .` as the command `setups`. 
 |---|---|---|
 | VS Code setup | `C:\Users\DELL\Setups\common\vscode\setup.py` (stdlib-only, also runs on servers) | `--check --json` (results `{status: ok\|drift\|missing\|extra\|skip\|warn\|failed, subject, detail}`), `--diff` (unified diff of live settings vs repo), `--prune`, `--force`, `--server`. Creating profiles / linking projects needs VS Code closed (reports `skip` otherwise) |
 | Profiles | `C:\Users\DELL\Setups\common\vscode\profiles.json` | `{"base": [...], "profiles": {name: {"icon", "extensions", "extends"?}}}`. Profile names today: Python, Data Science, Web, Docs, Rust (plus the implicit Default) |
-| `new-project` | `C:\Users\DELL\Setups\common\tools\new-project` (separate uv tool) | `new-project <py\|data\|report\|web> <name> [--dir D] [--description T] [--engine quarto\|typst\|latex] [--profile P] [--open] [--no-git] [--no-sync]`. Name must match `^[a-z][a-z0-9]*(-[a-z0-9]+)*$`. Default dir: `$NEW_PROJECT_DIR`, else `D:\Personal Projects`, else `~/Projects` |
+| `new-project` | `C:\Users\DELL\Setups\common\tools\new-project` (separate uv tool) | `new-project <py\|data\|report\|web> <name> [--dir D] [--description T] [--engine quarto\|typst\|latex] [--profile P] [--open] [--no-git] [--no-sync]`. Name must match `^[a-z][a-z0-9]*(-[a-z0-9]+)*$`. Default dir: `$NEW_PROJECT_DIR`, else `D:\projects`, else `~/Projects` |
 | `vsc` | same package as `new-project` | `vsc [dir]` opens a folder in its profile (reads `.vscode/profile`), `vsc --set <profile> [dir]` writes the marker, `vsc --list` |
 | `maintain.ps1` | `C:\Users\DELL\Setups\windows\maintain.ps1` | No flags: runs `setups check`. `-Clean`: prune caches. `-Update`: winget/uv tools/rustup/cargo/npm upgrades |
 | Link scripts | `Setups\windows\link.ps1`, `Setups\linux\link.sh` | Idempotent; the usual fix for setup drift (`ctx.link_script()`) |

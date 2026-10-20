@@ -8,10 +8,10 @@ from pathlib import Path
 
 
 def projects_root(home: Path) -> Path:
-    """Same rule as new-project: $NEW_PROJECT_DIR, else D:\\Personal Projects, else ~/Projects."""
+    """Same rule as new-project: $NEW_PROJECT_DIR, else D:\\projects, else ~/Projects."""
     if env := os.environ.get("NEW_PROJECT_DIR"):
         return Path(env)
-    windows_default = Path(r"D:\Personal Projects")
+    windows_default = Path(r"D:\projects")
     return windows_default if windows_default.is_dir() else home / "Projects"
 
 
