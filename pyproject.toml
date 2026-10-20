@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = []
 
 [project.scripts]
-setups-manager = "setups_manager.cli:main"
+setups = "setups_manager.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]
