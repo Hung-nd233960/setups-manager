@@ -34,3 +34,11 @@ class Result:
 
     def to_dict(self) -> dict:
         return asdict(self) | {"status": str(self.status)}
+
+
+def row_key(result: Result, index: int) -> str:
+    """Stable id of a result: its check and its position among that check's results.
+
+    The dashboard rows and `setups fix <key>` use the same key.
+    """
+    return f"{result.check}:{index}"

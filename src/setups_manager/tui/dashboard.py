@@ -11,7 +11,7 @@ from textual.worker import get_current_worker
 
 from setups_manager import runner
 from setups_manager.context import Context
-from setups_manager.model import Result, Status
+from setups_manager.model import Result, Status, row_key
 from setups_manager.registry import Check
 
 SYMBOLS = {
@@ -25,10 +25,6 @@ SYMBOLS = {
 def status_cell(status: Status) -> Text:
     label, style = SYMBOLS[status]
     return Text(label, style=style)
-
-
-def row_key(result: Result, index: int) -> str:
-    return f"{result.check}:{index}"
 
 
 def summary_line(results: list[Result]) -> str:
