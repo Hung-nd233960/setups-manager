@@ -5,6 +5,7 @@ Python package with a command-line entry point, managed with uv (Python 3.13). I
 - Run: `uv run setups check --quick` (installed globally as `setups`). Test: `uv run pytest`.
 - Dependencies: `uv add <pkg>` (dev only: `uv add --dev <pkg>`). Never `pip install`.
 - Layout: code in `src/setups_manager/`, checks in `src/setups_manager/checks/` (one module per area), tests in `tests/`.
+- **This repo is public: no personal facts in code, tests or docs** (hostnames, usernames beyond path conventions, emails, project names). Anything personal the tool needs comes from a config file in Setups-private at run time.
 - **Checks are read-only.** They inspect and report; any change belongs in a `Fix` command. Mark a fix `confirm=True` when it is destructive or outward-facing (push, prune, uninstall, upgrade).
 - New check: a function in the right `checks/` module, decorated with `@check(id, group, description)`; `slow=True` if it walks big folders or goes online; `platforms=` if OS-specific. Yield one `Result` per thing checked. Add a test with a temporary `Context` (`tests/conftest.py`), never against the real machine.
 - Run tools through `shell.run`, which never raises. Do not duplicate rules that Setups scripts own (VS Code goes through `setup.py --json`).
