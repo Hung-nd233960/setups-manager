@@ -1,0 +1,114 @@
+TabPane {
+    padding: 0 1;
+}
+
+#dashboard-bar {
+    height: 3;
+    align: left middle;
+}
+
+#dashboard-bar Label {
+    margin: 0 1;
+}
+
+#progress {
+    width: 1fr;
+}
+
+#checks-table {
+    height: 1fr;
+}
+
+#detail {
+    height: 7;
+    border: round $primary;
+    padding: 0 1;
+    overflow-y: auto;
+}
+
+#summary {
+    height: 1;
+    text-style: bold;
+}
+
+#np-form {
+    height: 1fr;
+}
+
+.np-row {
+    height: auto;
+    margin-bottom: 1;
+}
+
+.np-row Label {
+    width: 14;
+    padding-top: 1;
+}
+
+.np-row Input,
+.np-row Select {
+    width: 1fr;
+}
+
+.np-switches {
+    height: auto;
+    margin-bottom: 1;
+}
+
+.np-switches Label {
+    margin: 1 1 0 0;
+}
+
+.np-switches Switch {
+    margin-right: 2;
+}
+
+#np-preview {
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+#np-problems {
+    color: $error;
+    height: auto;
+}
+
+#np-buttons {
+    height: 3;
+}
+
+#np-log {
+    height: 10;
+    border: round $primary;
+}
+
+#np-result {
+    height: auto;
+    color: $success;
+}
+
+#np-open-btn {
+    display: none;
+}
+
+#np-open-btn.shown {
+    display: block;
+}
+
+ConfirmScreen {
+    align: center middle;
+}
+
+#confirm-box {
+    width: 70;
+    height: auto;
+    border: thick $warning;
+    background: $surface;
+    padding: 1 2;
+}
+
+#confirm-buttons {
+    height: 3;
+    align-horizontal: right;
+    margin-top: 1;
+}

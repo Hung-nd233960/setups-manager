@@ -11,6 +11,8 @@ from pathlib import Path
 
 from setups_manager import shell
 
+UV_TYPES = frozenset({"py", "data"})  # the types where new-project runs `uv sync`
+
 
 @dataclass(frozen=True)
 class Options:

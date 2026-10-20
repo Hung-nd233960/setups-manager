@@ -49,3 +49,15 @@ def test_check_text_shows_fix_and_passes_when_all_ok(registry, capsys):
     assert "fix: Do it (asks first)" in out
     assert "$ tool --fix" in out
     assert main(["check", "--only", "fine"]) == 0
+
+
+def test_check_commands_do_not_import_textual():
+    import subprocess
+    import sys
+
+    code = (
+        "import sys; from setups_manager.cli import main; main(['list']); "
+        "print(any(m.startswith('textual') for m in sys.modules))"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert out.stdout.strip().endswith("False")

@@ -4,6 +4,7 @@ setups check                 run every check (exit 1 if anything needs attention
 setups check --quick         skip the slow ones (cache sizes, online updates)
 setups check --group repos   only some groups (or --only <id>); --json for tools and agents
 setups list                  list the checks
+setups tui                   the terminal UI (for people; agents use the commands above)
 """
 
 import argparse
@@ -73,7 +74,16 @@ def main(argv: list[str] | None = None) -> int:
         "--only", action="append", metavar="ID", help="only this check (repeatable)"
     )
     commands.add_parser("list", help="list the checks")
+    commands.add_parser(
+        "tui", help="open the terminal UI (interactive; not for agents)"
+    )
     args = parser.parse_args(argv)
+
+    if args.command == "tui":
+        from setups_manager.tui.app import SetupsApp  # lazy: `check` stays Textual-free
+
+        SetupsApp().run()
+        return 0
 
     ctx = Context.detect()
     if args.command == "list":
