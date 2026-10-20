@@ -6,6 +6,7 @@ setups check --group repos   only some groups (or --only <id>); --json for tools
 setups list                  list the checks
 setups fix --list            the results that have a fix command (with their keys)
 setups fix <key>... [--yes]  run those fixes (confirm-fixes need --yes), then re-check
+setups projects [--json]     projects with VS Code profile and git state
 setups tui                   the terminal UI (for people; agents use the commands above)
 """
 
@@ -14,7 +15,7 @@ import json
 import sys
 from collections import Counter
 
-from setups_manager import __version__, actions, shell
+from setups_manager import __version__, actions, projects, shell
 from setups_manager.context import Context
 from setups_manager.model import Result, Status
 from setups_manager.registry import GROUPS, REGISTRY
@@ -105,6 +106,19 @@ def run_fixes(args: argparse.Namespace, ctx: Context, parser) -> int:
     return 1 if failed else 0
 
 
+def print_projects(found: list[projects.Project]) -> None:
+    if not found:
+        print("No projects found.")
+        return
+    width = max(len(p.name) for p in found)
+    for p in found:
+        ahead = "-" if p.ahead is None else p.ahead
+        print(
+            f"{p.name:<{width}}  {p.profile or '-':<13} {p.branch or '-':<10} "
+            f"dirty {p.dirty:<3} unpushed {ahead!s:<3} {p.last_commit or '-'}"
+        )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="setups",
@@ -126,6 +140,8 @@ def main(argv: list[str] | None = None) -> int:
         "--only", action="append", metavar="ID", help="only this check (repeatable)"
     )
     commands.add_parser("list", help="list the checks")
+    proj = commands.add_parser("projects", help="projects with profile and git state")
+    proj.add_argument("--json", action="store_true", help="machine-readable output")
     fix = commands.add_parser(
         "fix",
         help="list or run the fixes of failing checks",
@@ -150,6 +166,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     ctx = Context.detect()
+    if args.command == "projects":
+        found = projects.list_projects(ctx)
+        if args.json:
+            print(json.dumps([p.to_dict() for p in found], indent=2))
+        else:
+            print_projects(found)
+        return 0
     if args.command == "fix":
         return run_fixes(args, ctx, parser)
     if args.command == "list":

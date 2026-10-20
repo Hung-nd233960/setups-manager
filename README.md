@@ -12,6 +12,7 @@ setups check --json             # for tools and agents
 setups list                     # the checks, by group
 setups fix --list               # results with a fix command, each with a key like repos:2
 setups fix repos:2 [--yes]      # run that fix, then re-check (fixes that ask first need --yes)
+setups projects [--json]        # project folders with VS Code profile and git state
 setups tui                      # terminal UI: Dashboard and New project tabs
 ```
 
@@ -37,6 +38,7 @@ runner.py                select checks, run them in parallel, stream or collect 
 registry.py              @check(id, group, description, slow=, platforms=)
 checks/*.py              one module per area; each check yields Result(title, status, detail, fix)
 actions.py               fixable results and running a fix (shared by `setups fix` and the TUI)
+projects.py              project folders: VS Code profile, git state, set profile, open
 model.py · context.py    Result / Fix / Status / row_key; where things live (SETUPS_DIR, NEW_PROJECT_DIR)
 shell.py                 run tools without raising; stream() yields live output lines
 newproject.py            new-project options, validation and command builder
