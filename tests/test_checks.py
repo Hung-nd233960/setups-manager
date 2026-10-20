@@ -1,6 +1,7 @@
 import subprocess
 
 import pytest
+
 from setups_manager.checks import claude, links, repos, vscode
 from setups_manager.model import Status
 

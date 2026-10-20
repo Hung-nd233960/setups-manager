@@ -37,6 +37,7 @@ def test_check_json_shape_and_exit_code(registry, capsys):
     assert report["summary"] == {"ok": 1, "warn": 1, "error": 0, "skip": 0}
     stale = report["results"][1]
     assert stale["check"] == "stale"
+    assert stale["key"] == "stale:0"  # what `setups fix` takes
     assert stale["status"] == "warn"
     assert stale["fix"] == {
         "label": "Do it",
@@ -125,7 +126,9 @@ def test_fix_unknown_or_manual_key_exits_2(registry, capsys):
 def test_fix_failing_command_exits_1(registry, capsys):
     @check("bad", "setup", "fails")
     def bad(ctx):
-        yield Result("t", Status.WARN, fix=Fix("Fail", [sys.executable, "-c", "exit(3)"]))
+        yield Result(
+            "t", Status.WARN, fix=Fix("Fail", [sys.executable, "-c", "exit(3)"])
+        )
 
     assert main(["fix", "bad:0"]) == 1
     assert "exit 3" in capsys.readouterr().out

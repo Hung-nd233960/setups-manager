@@ -1,6 +1,7 @@
 import sys
 
 import pytest
+
 from setups_manager import actions, shell
 from setups_manager.model import Fix, Result, Status
 

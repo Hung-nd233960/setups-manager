@@ -3,6 +3,7 @@ import os
 import subprocess
 
 import pytest
+
 from setups_manager import projects, shell
 from setups_manager.cli import main
 

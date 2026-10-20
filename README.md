@@ -8,7 +8,7 @@ Checks this machine against the [Setups](https://github.com/Hung-nd233960/Setups
 setups check                    # every check; exit 1 if something needs attention
 setups check --quick            # skip the slow ones (cache sizes, online updates)
 setups check --group repos      # or --only vscode; repeatable
-setups check --json             # for tools and agents
+setups check --json             # for tools and agents; each result has a key for setups fix
 setups list                     # the checks, by group
 setups fix --list               # results with a fix command, each with a key like repos:2
 setups fix repos:2 [--yes]      # run that fix, then re-check (fixes that ask first need --yes)

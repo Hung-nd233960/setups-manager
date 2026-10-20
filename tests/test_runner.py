@@ -1,4 +1,5 @@
 import pytest
+
 from setups_manager.model import Result, Status
 from setups_manager.registry import check
 from setups_manager.runner import run_all, run_one, select

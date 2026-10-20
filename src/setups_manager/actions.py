@@ -1,11 +1,10 @@
 """Fixes that can be run: the results whose Fix carries a command."""
 
-from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass
 
 from setups_manager import shell
-from setups_manager.model import Fix, Result, row_key
+from setups_manager.model import Fix, Result, keyed
 
 
 @dataclass(frozen=True)
@@ -26,14 +25,11 @@ class FixTarget:
 
 def fixable(results: list[Result]) -> list[FixTarget]:
     """Results that need attention and have a command. Manual fixes are shown, never run."""
-    seen: Counter[str] = Counter()  # next index per check
-    targets = []
-    for r in results:
-        index = seen[r.check]
-        seen[r.check] += 1
-        if r.status.needs_attention and r.fix and r.fix.command:
-            targets.append(FixTarget(row_key(r, index), r))
-    return targets
+    return [
+        FixTarget(key, r)
+        for key, r in keyed(results)
+        if r.status.needs_attention and r.fix and r.fix.command
+    ]
 
 
 def run_fix(target: FixTarget) -> Iterator[str | shell.Exit]:

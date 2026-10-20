@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 import pytest
+
 from setups_manager.context import Context
 from setups_manager.registry import REGISTRY
 

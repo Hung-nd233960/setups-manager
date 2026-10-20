@@ -17,7 +17,7 @@ from collections import Counter
 
 from setups_manager import __version__, actions, projects, shell
 from setups_manager.context import Context
-from setups_manager.model import Result, Status
+from setups_manager.model import Result, Status, keyed
 from setups_manager.registry import GROUPS, REGISTRY
 from setups_manager.runner import run_all, select
 
@@ -191,7 +191,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         report = {
             "summary": summary(results),
-            "results": [r.to_dict() for r in results],
+            "results": [{"key": k} | r.to_dict() for k, r in keyed(results)],
         }
         print(json.dumps(report, indent=2))
     else:

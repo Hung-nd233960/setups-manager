@@ -1,5 +1,6 @@
 """What a check reports: a status, a one-line title and, when something is off, a fix."""
 
+from collections import Counter
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 
@@ -42,3 +43,13 @@ def row_key(result: Result, index: int) -> str:
     The dashboard rows and `setups fix <key>` use the same key.
     """
     return f"{result.check}:{index}"
+
+
+def keyed(results: list[Result]) -> list[tuple[str, Result]]:
+    """Each result with its `row_key`, counting positions per check."""
+    seen: Counter[str] = Counter()
+    out = []
+    for r in results:
+        out.append((row_key(r, seen[r.check]), r))
+        seen[r.check] += 1
+    return out

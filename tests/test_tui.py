@@ -3,16 +3,17 @@
 from pathlib import Path
 
 from conftest import make_ctx
+from textual.widgets import Button, DataTable, Input, Select, Static, Switch
+
 from setups_manager import newproject, projects, shell
 from setups_manager.model import Fix, Result, Status
 from setups_manager.newproject import Options
 from setups_manager.registry import Check
 from setups_manager.tui.app import SetupsApp
 from setups_manager.tui.dashboard import DashboardPane
-from setups_manager.tui.projects import ProfileScreen, ProjectsPane
 from setups_manager.tui.new_project import NewProjectPane
+from setups_manager.tui.projects import ProfileScreen, ProjectsPane
 from setups_manager.tui.widgets import ConfirmScreen, LogPanel
-from textual.widgets import Button, DataTable, Input, Select, Static, Switch
 
 
 def make_checks(calls: list[str]) -> list[Check]:
