@@ -15,7 +15,7 @@ setups fix repos:2 [--yes]      # run that fix, then re-check (fixes that ask fi
 setups tui                      # terminal UI: Dashboard and New project tabs
 ```
 
-`setups tui` is for people at a keyboard (agents use the commands above and must never start it). Keys: `r` re-run checks (follows the Quick switch), `R` run all including slow ones, `n` New project, `q` quit. The New project tab is a form over `new-project`: it reads the rules from `new-project --options-json`, shows the exact command it will run, and streams its output.
+`setups tui` is for people at a keyboard (agents use the commands above and must never start it). Keys: `r` re-run checks (follows the Quick switch), `R` run all including slow ones, `f` run the selected row's fix (also the Run fix button; fixes that ask first show the exact command in a dialog), `n` New project, `q` quit. Fix output streams into a log under the detail panel and the owning check is re-run afterwards. Manual fixes only show their label. The New project tab is a form over `new-project`: it reads the rules from `new-project --options-json`, shows the exact command it will run, and streams its output.
 
 Install the command (once): `uv tool install --editable .`. On Windows, `Setups\windows\maintain.ps1` runs `setups check` and adds `-Clean` / `-Update`.
 

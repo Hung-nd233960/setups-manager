@@ -8,6 +8,7 @@ from setups_manager.model import Fix, Result, Status
 from setups_manager.newproject import Options
 from setups_manager.registry import Check
 from setups_manager.tui.app import SetupsApp
+from setups_manager.tui.dashboard import DashboardPane
 from setups_manager.tui.new_project import NewProjectPane
 from setups_manager.tui.widgets import ConfirmScreen, LogPanel
 from textual.widgets import Button, DataTable, Input, Select, Static, Switch
@@ -179,7 +180,7 @@ async def test_new_project_create_streams_output(tmp_path, monkeypatch):
         app.query_one("#np-create", Button).press()
         await settle(app, pilot)
         assert seen == [["new-project", "py", "fresh", "--dir", str(tmp_path / "out")]]
-        log = " | ".join(app.query_one(LogPanel).history)
+        log = " | ".join(app.query_one("#np-log", LogPanel).history)
         assert "scaffolding" in log
         assert "exit 0" in log
         assert text(app, "#np-result").startswith("Created ")
@@ -226,3 +227,120 @@ async def test_confirm_screen_returns_choice(tmp_path):
         await pilot.press("escape")
         await pilot.pause()
     assert results == [True, False]
+
+
+def fix_checks(calls: list[str], state: dict) -> list[Check]:
+    """One check that warns until its fix has run, one whose fix asks first."""
+
+    def tidy(ctx):
+        calls.append("tidy")
+        if state.get("fixed"):
+            yield Result("tidy now", Status.OK)
+        else:
+            yield Result(
+                "untidy", Status.WARN, "mess", Fix("Tidy up", ["tidy-tool", "--go"])
+            )
+
+    def risky(ctx):
+        yield Result(
+            "unpushed", Status.WARN, fix=Fix("Push it", ["git", "push"], confirm=True)
+        )
+
+    def manual(ctx):
+        yield Result("by hand", Status.WARN, fix=Fix("Edit the file"))
+
+    return [
+        Check("tidy", "system", "tidy check", tidy),
+        Check("risky", "setup", "risky check", risky),
+        Check("manual", "python", "manual check", manual),
+    ]
+
+
+async def test_fix_runs_streams_and_rechecks(tmp_path, monkeypatch):
+    calls: list[str] = []
+    state: dict = {}
+    seen = []
+
+    def fake_stream(cmd, *, cwd=None):
+        seen.append(cmd)
+        state["fixed"] = True
+        yield "tidying"
+        yield shell.Exit(0)
+
+    monkeypatch.setattr(shell, "stream", fake_stream)
+    app = SetupsApp(make_ctx(tmp_path), fix_checks(calls, state))
+    async with app.run_test(size=(120, 50)) as pilot:
+        await settle(app, pilot)
+        table = app.query_one("#checks-table", DataTable)
+        table.focus()
+        table.move_cursor(row=0)
+        await pilot.pause()
+        assert app.query_one("#fix-btn", Button).display
+        await pilot.press("f")  # no confirmation for a plain fix
+        await settle(app, pilot)
+        assert seen == [["tidy-tool", "--go"]]
+        log = " | ".join(app.query_one("#fix-log", LogPanel).history)
+        assert "tidying" in log
+        assert "fix exited 0" in text(app, "#fix-status")
+        assert calls == ["tidy", "tidy"]  # only the owning check was re-run
+        assert rows(app)[0] == ("tidy", "tidy now")
+        assert "1 ok · 2 warn" in text(app, "#summary")
+
+
+async def test_confirm_fix_cancelled_runs_nothing(tmp_path, monkeypatch):
+    seen = []
+    monkeypatch.setattr(
+        shell, "stream", lambda cmd, **kw: seen.append(cmd) or iter([shell.Exit(0)])
+    )
+    app = SetupsApp(make_ctx(tmp_path), fix_checks([], {}))
+    async with app.run_test(size=(120, 50)) as pilot:
+        await settle(app, pilot)
+        table = app.query_one("#checks-table", DataTable)
+        table.focus()
+        table.move_cursor(row=1)
+        await pilot.pause()
+        await pilot.press("f")
+        await pilot.pause()
+        assert isinstance(app.screen, ConfirmScreen)
+        assert "$ git push" in str(app.screen.query_one("#confirm-detail").render())
+        await pilot.click("#confirm-cancel")
+        await settle(app, pilot)
+        assert seen == []
+        assert not app.query_one(DashboardPane).fixing
+
+        await pilot.press("f")
+        await pilot.pause()
+        await pilot.click("#confirm-ok")
+        await settle(app, pilot)
+        assert seen == [["git", "push"]]
+
+
+async def test_manual_fix_has_no_run_button_and_second_fix_is_blocked(
+    tmp_path, monkeypatch
+):
+    seen = []
+    monkeypatch.setattr(
+        shell, "stream", lambda cmd, **kw: seen.append(cmd) or iter([shell.Exit(0)])
+    )
+    app = SetupsApp(make_ctx(tmp_path), fix_checks([], {}))
+    async with app.run_test(size=(120, 50)) as pilot:
+        await settle(app, pilot)
+        table = app.query_one("#checks-table", DataTable)
+        table.focus()
+        table.move_cursor(row=2)
+        await pilot.pause()
+        assert "Fix: Edit the file" in text(app, "#detail")
+        assert not app.query_one("#fix-btn", Button).display
+        await pilot.press("f")
+        await settle(app, pilot)
+        assert seen == []
+
+        table.move_cursor(row=0)
+        await pilot.pause()
+        pane = app.query_one(DashboardPane)
+        pane.fixing = True  # as if a fix were running
+        await pilot.press("f")
+        await settle(app, pilot)
+        assert seen == []
+        pane._update_fix_button(pane.selected_target())
+        assert app.query_one("#fix-btn", Button).disabled

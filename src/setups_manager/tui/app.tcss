@@ -26,6 +26,21 @@ TabPane {
     overflow-y: auto;
 }
 
+#fix-bar {
+    height: 3;
+    align: left middle;
+}
+
+#fix-status {
+    margin-left: 2;
+    width: 1fr;
+}
+
+#fix-log {
+    height: 8;
+    border: round $primary;
+}
+
 #summary {
     height: 1;
     text-style: bold;
